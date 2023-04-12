@@ -1,19 +1,20 @@
 import mongoose from "mongoose";
 import bycrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import workingHoursSchema from "./workingHours.js";
 const userSchema = mongoose.Schema({
   username: {
     type: String,
     require: [true, "Please provide a username"],
-    min: [6, "username should be at least 6 characters"],
-    max: [10, "username should no be more than 10 characters"],
+    minlength: [5, "username should be at least 5 characters"],
+    maxlength: [15, "username should no be more than 15 characters"],
     unique: true,
   },
   password: {
     type: String,
     require: [true, "Please provide a password"],
-    min: [6, "username should be at least 6 characters"],
-    max: [15, "username should no be more than 15 characters"],
+    minlength: [6, "password should be at least 6 characters"],
+    maxlength: [15, "password should no be more than 15 characters"],
   },
   role: {
     type: String,
@@ -21,6 +22,7 @@ const userSchema = mongoose.Schema({
     require: [true, "Please provide a role"],
     default: "user",
   },
+  preferredWorkingHour: [workingHoursSchema],
 });
 
 // Hash passowrd
@@ -34,7 +36,6 @@ userSchema.methods.comparePassword = async function (inputPassword) {
   const match = await bycrypt.compare(inputPassword, this.password);
   return match;
 };
-
 
 //Generate Token
 userSchema.methods.generateToken = async function () {
