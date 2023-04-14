@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import authRouter from "./router/authRouter.js";
+import workRouter from "./router/workRouter.js";
 import connect from "./connectDB/connect.js";
 import session from "express-session";
 import MongoStore from "connect-mongo";
@@ -33,6 +34,7 @@ app.use(
 );
 
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/work", workRouter);
 
 app.get("/", (req, res) => {
   res.send("Home");
@@ -49,12 +51,20 @@ app.use((err, req, res, next) => {
     status = err.statusCode || 500;
     message = err.message;
     // console.log("errors", err);
-    // console.log("errors kind", err.errors.kind);
-    // console.log("errors kind", err.errors.username);
-    // console.log("errors kind", err.errors.username.properties.type);
+
     if (err.code === 11000) {
       status = 500;
       message = `${err.keyValue.username} has been taken`;
+    }
+
+    // Customize error message for validation errors
+    if (err.name === "ValidationError") {
+      message = Object.values(err.errors)
+        .map((error) => error.message)
+        .join(", ");
+    }
+    if (err.name === "CastError") {
+      message = `Invalid id: ${err.value}`;
     }
 
     res.status(status).json({ message: message });
