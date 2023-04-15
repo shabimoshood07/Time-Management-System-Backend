@@ -74,3 +74,41 @@ export const getWork = async (req, res, next) => {
     next(error);
   }
 };
+
+export const deleteWork = async (req, res, next) => {
+  const { workId } = req.params;
+  try {
+    if (req.session.role === "user") {
+      const userId = req.session.userId;
+      const work = await Work.findOneAndDelete({ _id: workId, user: userId });
+      if (!work)
+        return res
+          .status(404)
+          .json({
+            message: `No work found with id: ${workId} or unauthorized`,
+          });
+      res.status(200).json({ message: "Work deleted successfully" });
+    }
+    if (req.session.role === "manager") {
+      const work = await Work.findOneAndDelete({
+        _id: workId,
+        role: { $in: ["user", "manager"] },
+      });
+      if (!work)
+        return res
+          .status(404)
+          .json({
+            message: `No work found with id: ${workId} or unauthorized`,
+          });
+      res.status(200).json({ message: "Work deleted successfully" });
+    }
+    if (req.session.role === "admin") {
+      const work = await Work.findOneAndDelete({
+        _id: workId,
+      });
+      res.status(200).json({ message: "Work deleted successfully" });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
