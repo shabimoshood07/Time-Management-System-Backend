@@ -51,6 +51,8 @@ app.use((err, req, res, next) => {
     status = err.statusCode || 500;
     message = err.message;
     // console.log("errors", err);
+    // console.log("errors", err.name);
+    // console.log("errors", err.type);
 
     if (err.code === 11000) {
       status = 500;

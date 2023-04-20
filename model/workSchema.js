@@ -39,7 +39,15 @@ workSchema.pre("save", function (next) {
 });
 
 workSchema.path("endWork").validate(function (value) {
-  return value > this.startWork;
+  // only run the validation if startWork has been modified
+  const startWork = this.startWork || this.getUpdate().$set.startWork;
+  return value > startWork;
+}, "The end time of the work must be after the start time.");
+
+workSchema.path("startWork").validate(function (value) {
+  // only run the validation if endWork has been modified
+  const endWork = this.endWork || this.getUpdate().$set.endWork;
+  return value < endWork;
 }, "The end time of the work must be after the start time.");
 
 const Work = mongoose.model("Work", workSchema);

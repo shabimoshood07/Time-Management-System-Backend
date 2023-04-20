@@ -25,27 +25,33 @@ const userSchema = mongoose.Schema({
   preferredWorkingHour: [workingHoursSchema],
 });
 
-// Hash passowrd
-userSchema.pre("save", async function () {
-  const salt = await bycrypt.genSalt(10);
-  this.password = await bycrypt.hash(this.password, salt);
+
+// userSchema.pre("save", async function (next) {
+//   if (!this.isModified("password")) {
+//     return next();
+//   }
+
+//   const salt = await bcrypt.genSalt(10);
+//   this.password = await bcrypt.hash(this.password, salt);
+//   next();
+// });
+
+
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password") || this.isNew) {
+    return next();
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
+
 
 // Compare password
 userSchema.methods.comparePassword = async function (inputPassword) {
   const match = await bycrypt.compare(inputPassword, this.password);
   return match;
-};
-
-//Generate Token
-userSchema.methods.generateToken = async function () {
-  return jwt.sign(
-    { userId: this._id, role: this.role },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: process.env.JWT_LIFETIME,
-    }
-  );
 };
 
 export default mongoose.model("UserSchema", userSchema);
