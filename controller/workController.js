@@ -3,27 +3,31 @@ import userModel from "../model/userModel.js";
 export const addWork = async (req, res, next) => {
   const user = req.session.userId;
   const role = req.session.role;
+  const { endWork, startWork, description, date } = req.body;
+
+  if (!endWork || !startWork || !description || !date)
+    return res.status(500).json({ message: "Enter all input field" });
   try {
     const newStartDate = new Date();
     const newEndtDate = new Date();
 
-    newStartDate.setHours(req.body.startWork.split(":")[0]);
-    newStartDate.setMinutes(req.body.startWork.split(":")[1]);
+    newStartDate.setHours(startWork.split(":")[0]);
+    newStartDate.setMinutes(startWork.split(":")[1]);
 
-    newEndtDate.setHours(req.body.endWork.split(":")[0]);
-    newEndtDate.setMinutes(req.body.endWork.split(":")[1]);
+    newEndtDate.setHours(endWork.split(":")[0]);
+    newEndtDate.setMinutes(endWork.split(":")[1]);
 
     console.log(newEndtDate, newStartDate);
 
     if (newEndtDate == "Invalid Date" || newStartDate == "Invalid Date")
       return res.status(500).json({ message: "Invalid time" });
 
-    let startWork = newStartDate;
-    let endWork = newEndtDate;
+    // let startWork = newStartDate;
+    // let endWork = newEndtDate;
 
-    let date = new Date(req.body.date).toISOString();
+    let dateCheck = new Date(req.body.date).toISOString();
     const dayExistsAlready = await Work.findOne({
-      date,
+      date: dateCheck,
       user: user,
     });
 
@@ -32,12 +36,12 @@ export const addWork = async (req, res, next) => {
         message:
           "It appears that you have added a work description for this date",
       });
-    date = new Date(req.body.date);
+    // date = new Date(req.body.date);
     const newWork = await Work.create({
       ...req.body,
       date,
-      startWork,
-      endWork,
+      startWork: newStartDate,
+      endWork: newEndtDate,
       user,
       role,
     });
@@ -173,13 +177,51 @@ export const updateWork = async (req, res, next) => {
 
     console.log(update);
 
-    const updatedDocument = await Work.findOneAndUpdate(
-      { _id: workId },
-      update,
-      { runValidators: true, new: true }
-    );
+    if (req.session.role === "user") {
+      const userId = req.session.userId;
+      const updatedDocument = await Work.findOneAndUpdate(
+        { _id: workId, user: userId },
+        update,
+        { runValidators: true, new: true }
+      );
 
-    res.status(200).json(updatedDocument);
+      if (!updatedDocument)
+        return res
+          .status(404)
+          .json({ message: "No work found or unauthorized" });
+
+      res.status(200).json(updatedDocument);
+    }
+    if (req.session.role === "manager") {
+      const userId = req.session.userId;
+      const updatedDocument = await Work.findOneAndUpdate(
+        { _id: workId, user: $in[("user", "manager")] },
+        update,
+        { runValidators: true, new: true }
+      );
+
+      if (!updatedDocument)
+        return res
+          .status(404)
+          .json({ message: "No work found or unauthorized" });
+
+      res.status(200).json(updatedDocument);
+    }
+    if (req.session.role === "admin") {
+      const userId = req.session.userId;
+      const updatedDocument = await Work.findOneAndUpdate(
+        { _id: workId },
+        update,
+        { runValidators: true, new: true }
+      );
+
+      if (!updatedDocument)
+        return res
+          .status(404)
+          .json({ message: "No work found or unauthorized" });
+
+      res.status(200).json(updatedDocument);
+    }
   } catch (error) {
     next(error);
   }
